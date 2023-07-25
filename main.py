@@ -1,86 +1,152 @@
+import sys
 from time import sleep
 from selenium import webdriver
+from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import ElementNotVisibleException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver import Keys
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium_recaptcha_solver import RecaptchaSolver
 from selenium_recaptcha_solver.exceptions import RecaptchaException
+# from selenium.webdriver.common.proxy import Proxy, ProxyType
 
 
 class SignUpForReddit:
-    def __init__(self):
-        self.user_agent_headers = 'Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
-        self.reg_url = "https://www.reddit.com/account/register/?experiment_d2x_2020ify_buttons=enabled&use_accountmanager=true&experiment_d2x_google_sso_gis_parity=enabled&experiment_d2x_onboarding=enabled&experiment_d2x_am_modal_design_update=enabled"
-        self.login = "craftsman94.test@gmail.com"
-        self.password = "some_password"
-        self.reg_username = None
-        self.reg_field = None
-        self.continue_button = None
+    def __init__(self, use_proxy: bool):
+        self.is_re_test = False
+
+        self.__proxy_list = ["39.59.1.14:8080", "118.31.112.32:80"]
+        self.__use_proxy = use_proxy
+        self.__user_agent_headers = 'Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                                    'Chrome/37.0.2049.0 Safari/537.36'
+        self.__reg_url = "https://www.reddit.com/account/register/?experiment_d2x_2020ify_buttons=enabled" \
+                         "&use_accountmanager=true&experiment_d2x_google_sso_gis_parity=enabled" \
+                         "&experiment_d2x_onboarding=enabled&experiment_d2x_am_modal_design_update=enabled"
+        self.__login = "craftsman94.test@gmail.com"
+        self.__password = "some_password"
+        self.__reg_username = None
+        self.__reg_field = None
+        self.__continue_button = None
         chrome_opts = self.__init_chrome_opts()
-        self.chrome = webdriver.Chrome(options=chrome_opts)
+        # capabilities = self.__get_capabilities_with_proxy()
+        self.__chrome = webdriver.Chrome(options=chrome_opts)
+        # self.__check_for_use_proxy()
 
     def __init_chrome_opts(self) -> Options:
         chrome_opts = Options()
-        chrome_opts.add_argument(f'--user-agent={self.user_agent_headers}')
+        chrome_opts.add_argument(f'--user-agent={self.__user_agent_headers}')
         chrome_opts.add_argument("--disable-notifications")
+        chrome_opts.add_experimental_option("detach", True)
         return chrome_opts
 
     def __go_to_reddit(self) -> None:
-        # global chrome
-        self.chrome.implicitly_wait(0.5)
-        self.chrome.get(self.reg_url)
+        self.__chrome.implicitly_wait(12)
+        self.__chrome.get(self.__reg_url)
 
     def __printing_email(self):
-        email_field = self.chrome.find_element(by=By.ID, value="regEmail")
-        for char in self.login:
-            email_field.send_keys(char)
-            self.__wait(0.1)
-        email_field.send_keys(Keys.ENTER)
+        try:
+            email_field = self.__chrome.find_element(by=By.ID, value="regEmail")
+            for char in self.__login:
+                email_field.send_keys(char)
+                self.__wait(0.1)
+            email_field.send_keys(Keys.ENTER)
+        except NoSuchElementException as nsee:
+            print(nsee)
+            self.__check_for_use_proxy_and_restart()
 
     def __save_value_from_reg_name(self):
-        self.reg_username = self.chrome.find_element(by=By.ID, value="regUsername")
+        self.__reg_username = self.__chrome.find_element(by=By.ID, value="regUsername")
 
     def __get_reg_field(self):
-        self.reg_field = self.chrome.find_element(by=By.ID, value="regPassword")
+        self.__reg_field = self.__chrome.find_element(by=By.ID, value="regPassword")
 
     def __printing_password(self):
-        for char in self.password:
-            self.reg_field.send_keys(char)
+        for char in self.__password:
+            self.__reg_field.send_keys(char)
             self.__wait(0.1)
 
     def __submit_regfield(self):
-        self.reg_field.send_keys(Keys.ENTER)
+        self.__reg_field.send_keys(Keys.ENTER)
 
     def __solve_captcha(self):
-        solver = RecaptchaSolver(driver=self.chrome)
-        recaptcha_iframe = self.chrome.find_element(By.XPATH, '//iframe[@title="reCAPTCHA"]')
+        solver = RecaptchaSolver(driver=self.__chrome)
+        recaptcha_iframe = self.__chrome.find_element(By.XPATH, '//iframe[@title="reCAPTCHA"]')
         is_repeat = True
         while is_repeat:
             try:
                 self.__wait(3)
+
+                if self.is_re_test:
+                    self.is_re_test = False
+                    raise RecaptchaException()
+
                 solver.click_recaptcha_v2(iframe=recaptcha_iframe)
                 is_repeat = False
-            except RecaptchaException:
-                print(RecaptchaException)
-                self.__wait(3)
-        self.__wait(3)
+            except RecaptchaException as rec_exc:
+                print(rec_exc)
+                self.__check_for_use_proxy_and_restart()
+            except StaleElementReferenceException as sere:
+                print(sere)
+                self.__restart_webdriver()
+            self.__wait(1)
 
     def __get_cont_butt(self):
-        self.continue_button = self.chrome.find_element(by=By.CSS_SELECTOR, value="button.SignupButton")
+        self.__continue_button = self.__chrome.find_element(by=By.CSS_SELECTOR, value="button.SignupButton")
 
     def __click_continue(self):
-        self.continue_button.click()
+        self.__continue_button.click()
 
     def __quit_browser(self):
-        self.chrome.quit()
+        self.__chrome.quit()
 
     @staticmethod
     def __wait(seconds):
         sleep(seconds)
 
+    def __check_for_use_proxy(self):
+        if self.__use_proxy and self.__proxy_list:
+            self.__set_new_proxy()
+
+    def __check_for_use_proxy_and_restart(self):
+        if self.__use_proxy and self.__proxy_list is not None:
+            self.__set_new_proxy()
+            self.__restart_webdriver()
+
+    def __set_new_proxy(self):
+        # new_proxy_opt = Options().add_argument(f"--proxy-server={self.proxy_list.pop()}")
+        if len(self.__proxy_list) != 0:
+            proxy = f"{self.__proxy_list.pop()}"
+            self.__chrome.capabilities['proxy'] = {
+                "httpProxy": proxy,
+                "ftpProxy": proxy,
+                "sslProxy": proxy,
+                "proxyType": "MANUAL",
+            }
+            print("Proxy changed to ", self.__chrome.capabilities['proxy'])
+        else:
+            print("There is no proxy left!")
+
+    def __restart_webdriver(self):
+        self.__reg_username = None
+        self.__reg_field = None
+        self.__continue_button = None
+        self.__chrome.refresh()
+        self.execute()
+
+    def __check_for_completed_signup(self):
+        try:
+            WebDriverWait(self.__chrome, 10).until(EC.url_to_be("https://www.reddit.com/"))
+        except TimeoutException as toe:
+            print(toe)
+            self.__check_for_use_proxy_and_restart()
+
     def execute(self):
+        # input("Enter any key to continue...")
         self.__go_to_reddit()
-        input("Enter any key to continue...")
         self.__printing_email()
         self.__wait(2)
         self.__save_value_from_reg_name()
@@ -91,12 +157,13 @@ class SignUpForReddit:
         self.__wait(2)
         self.__get_cont_butt()
         self.__click_continue()
-        # input("any key to continue...")
         self.__wait(2)
         self.__solve_captcha()
-        # self.click_continue()
-        input("Press any key to close the program...")
-        self.__quit_browser()
+        self.__click_continue()
+        self.__check_for_completed_signup()
+        input("Done. Press enter to close the program...")
+        sys.exit()
+        # self.__quit_browser()
 
 
-SignUpForReddit().execute()
+SignUpForReddit(True).execute()
