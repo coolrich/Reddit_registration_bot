@@ -56,7 +56,7 @@ class SignUpForReddit:
             email_field.send_keys(Keys.ENTER)
         except NoSuchElementException as nsee:
             print(nsee)
-            self.__check_for_use_proxy_and_restart()
+            # self.__check_for_use_proxy_and_restart()
 
     def __save_value_from_reg_name(self):
         self.__reg_username = self.__chrome.find_element(by=By.ID, value="regUsername")
@@ -74,25 +74,19 @@ class SignUpForReddit:
 
     def __solve_captcha(self):
         solver = RecaptchaSolver(driver=self.__chrome)
-        recaptcha_iframe = self.__chrome.find_element(By.XPATH, '//iframe[@title="reCAPTCHA"]')
-        is_repeat = True
-        while is_repeat:
-            try:
-                self.__wait(3)
+        recaptcha_iframe = WebDriverWait(self.__chrome, 10).until(EC.visibility_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]')))
+        try:
+            self.recaptcha_exception_test()
+            solver.click_recaptcha_v2(iframe=recaptcha_iframe)
+        except RecaptchaException as rec_exc:
+            print(rec_exc)
+        except StaleElementReferenceException as sere:
+            print(sere)
 
-                if self.is_re_test:
-                    self.is_re_test = False
-                    raise RecaptchaException()
-
-                solver.click_recaptcha_v2(iframe=recaptcha_iframe)
-                is_repeat = False
-            except RecaptchaException as rec_exc:
-                print(rec_exc)
-                self.__check_for_use_proxy_and_restart()
-            except StaleElementReferenceException as sere:
-                print(sere)
-                self.__restart_webdriver()
-            self.__wait(1)
+    def recaptcha_exception_test(self):
+        if self.is_re_test:
+            self.is_re_test = False
+            raise RecaptchaException()
 
     def __get_cont_butt(self):
         self.__continue_button = self.__chrome.find_element(by=By.CSS_SELECTOR, value="button.SignupButton")
@@ -139,7 +133,7 @@ class SignUpForReddit:
 
     def __check_for_completed_signup(self):
         try:
-            WebDriverWait(self.__chrome, 10).until(EC.url_to_be("https://www.reddit.com/"))
+            WebDriverWait(self.__chrome, 3).until(EC.url_to_be("https://www.reddit.com/"))
         except TimeoutException as toe:
             print(toe)
             self.__check_for_use_proxy_and_restart()
@@ -162,7 +156,7 @@ class SignUpForReddit:
         self.__click_continue()
         self.__check_for_completed_signup()
         input("Done. Press enter to close the program...")
-        sys.exit()
+        # sys.exit()
         # self.__quit_browser()
 
 
