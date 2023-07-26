@@ -1,3 +1,4 @@
+import pprint
 import sys
 from time import sleep
 from selenium import webdriver
@@ -12,6 +13,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium_recaptcha_solver import RecaptchaSolver
 from selenium_recaptcha_solver.exceptions import RecaptchaException
+
+
 # from selenium.webdriver.common.proxy import Proxy, ProxyType
 
 
@@ -26,7 +29,7 @@ class SignUpForReddit:
         self.__reg_url = "https://www.reddit.com/account/register/?experiment_d2x_2020ify_buttons=enabled" \
                          "&use_accountmanager=true&experiment_d2x_google_sso_gis_parity=enabled" \
                          "&experiment_d2x_onboarding=enabled&experiment_d2x_am_modal_design_update=enabled"
-        self.__login = "craftsman94.test@gmail.com"
+        self.__email = "craftsman94.test@gmail.com"
         self.__password = "some_password"
         self.__reg_username = None
         self.__reg_field = None
@@ -50,7 +53,7 @@ class SignUpForReddit:
     def __printing_email(self):
         try:
             email_field = self.__chrome.find_element(by=By.ID, value="regEmail")
-            for char in self.__login:
+            for char in self.__email:
                 email_field.send_keys(char)
                 self.__wait(0.1)
             email_field.send_keys(Keys.ENTER)
@@ -75,7 +78,8 @@ class SignUpForReddit:
     def __solve_captcha(self):
         try:
             solver = RecaptchaSolver(driver=self.__chrome)
-            recaptcha_iframe = WebDriverWait(self.__chrome, 3).until(EC.visibility_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]')))
+            recaptcha_iframe = WebDriverWait(self.__chrome, 3).until(
+                EC.visibility_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]')))
             self.recaptcha_exception_test()
             solver.click_recaptcha_v2(iframe=recaptcha_iframe)
         except RecaptchaException as rec_exc:
@@ -138,7 +142,7 @@ class SignUpForReddit:
             print(toe)
             self.__check_for_use_proxy_and_restart()
 
-    def execute(self):
+    def __execute(self):
         # input("Enter any key to continue...")
         self.__go_to_reddit()
         self.__printing_email()
@@ -155,11 +159,19 @@ class SignUpForReddit:
         self.__solve_captcha()
         self.__click_continue()
         self.__check_for_completed_signup()
-        input("Done. Press enter to close the program...")
         # sys.exit()
         # self.__quit_browser()
+        return {
+            'username': self.__reg_username,
+            'email': self.__email,
+            'password': self.__password,
+            'API_key': None
+        }
 
+    @staticmethod
+    def create_accounts(number_of_acc: int):
+        for i in range(1, number_of_acc + 1):
+            acc_details = SignUpForReddit(True).__execute()
+            pprint.pp(acc_details)
+    input("Done. Press enter to close the program...")
 
-
-
-SignUpForReddit(True).execute()
