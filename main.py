@@ -6,18 +6,22 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium_recaptcha_solver import RecaptchaSolver
 from selenium_recaptcha_solver.exceptions import RecaptchaException
+from selenium_stealth import stealth
 
 
 # from selenium.webdriver.common.proxy import Proxy, ProxyType
 
 class Data:
     """Stores the usernames, emails, passwords, and API keys"""
+
     def __init__(self):
         self.email_accounts = []
         self.reddit_accounts = []
@@ -51,7 +55,17 @@ class SignUpForReddit:
         self.__reg_field = None
         self.__continue_button = None
         chrome_opts = self.__init_chrome_opts(is_detached)
-        self.__chrome = webdriver.Chrome(options=chrome_opts)
+        self.__chrome = webdriver.Chrome(options=chrome_opts, service=ChromeService(
+            ChromeDriverManager().install()))
+        stealth(self.__chrome,
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.5481.105 Safari/537.36',
+                languages=["en-US", "en"],
+                vendor="Google Inc.",
+                platform="Win32",
+                webgl_vendor="Intel Inc.",
+                renderer="Intel Iris OpenGL Engine",
+                fix_hairline=True,
+                )
 
     def __init_chrome_opts(self, is_detached: bool = False) -> Options:
         chrome_opts = Options()
@@ -59,8 +73,8 @@ class SignUpForReddit:
         chrome_opts.add_argument("--disable-notifications")
         chrome_opts.add_experimental_option("detach", is_detached)
         # chrome_opts.add_argument("--headless")
-        # chrome_opts.add_experimental_option("excludeSwitches", ["enable-automation"])
-        # chrome_opts.add_experimental_option('useAutomationExtension', False)
+        chrome_opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_opts.add_experimental_option('useAutomationExtension', False)
         return chrome_opts
 
     def __go_to_reddit(self) -> None:
