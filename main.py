@@ -73,9 +73,9 @@ class SignUpForReddit:
         self.__reg_field.send_keys(Keys.ENTER)
 
     def __solve_captcha(self):
-        solver = RecaptchaSolver(driver=self.__chrome)
-        recaptcha_iframe = WebDriverWait(self.__chrome, 10).until(EC.visibility_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]')))
         try:
+            solver = RecaptchaSolver(driver=self.__chrome)
+            recaptcha_iframe = WebDriverWait(self.__chrome, 3).until(EC.visibility_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]')))
             self.recaptcha_exception_test()
             solver.click_recaptcha_v2(iframe=recaptcha_iframe)
         except RecaptchaException as rec_exc:
@@ -158,6 +158,8 @@ class SignUpForReddit:
         input("Done. Press enter to close the program...")
         # sys.exit()
         # self.__quit_browser()
+
+
 
 
 SignUpForReddit(True).execute()
