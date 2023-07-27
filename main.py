@@ -77,7 +77,7 @@ class SignUpForReddit:
         chrome_opts.add_experimental_option('useAutomationExtension', False)
         return chrome_opts
 
-    def __go_to_reddit(self) -> None:
+    def __go_to_reddit_registration_page(self) -> None:
         self.__chrome.implicitly_wait(12)
         self.__chrome.get(self.__reg_url)
 
@@ -182,7 +182,7 @@ class SignUpForReddit:
 
     def execute(self):
         # input("Enter any key to continue...")
-        self.__go_to_reddit()
+        self.__go_to_reddit_registration_page()
         self.__printing_email()
         self.__wait(2)
         self.__save_value_from_reg_name()
@@ -197,6 +197,7 @@ class SignUpForReddit:
         self.__solve_captcha()
         self.__click_continue()
         self.__check_for_completed_signup()
+        self.__log_out()
         # sys.exit()
         # self.__quit_browser()
         return {
@@ -205,6 +206,35 @@ class SignUpForReddit:
             'password': self.__password,
             'API_key': None
         }
+
+    def test_execute(self):
+        self.__go_to_reddit_registration_page()
+
+    def __go_to_reddit(self):
+        self.__chrome.get('https://www.reddit.com/')
+
+    def __log_in(self):
+        self.__chrome.get('https://www.reddit.com/login/?dest=https%3A%2F%2Fwww.reddit.com%2F')
+        login_field = self.__chrome.find_element(by=By.ID, value="loginUsername")
+        login_field.send_keys('mindcrafter94')
+        passwd_field = self.__chrome.find_element(by=By.ID, value="loginPassword")
+        passwd_field.send_keys("27JuL15:322023")
+        passwd_field.send_keys(Keys.ENTER)
+
+    def __log_out(self):
+        dropdown_menu = WebDriverWait(self.__chrome, 5).until(EC.visibility_of_element_located((By.ID, 'USER_DROPDOWN_ID')))
+        dropdown_menu.click()
+        # log_button = WebDriverWait(self.__chrome, 5).until(EC.visibility_of_element_located((By.XPATH, "//*[matches(text(), \"Log "
+        #                                                                                   "Out\", \"i\")]")))
+        log_button = self.__chrome.find_element(by=By.XPATH, value="//*[contains(text(), \"Log Out\")]")
+        while log_button.tag_name != 'button':
+            log_button = log_button.find_element(by=By.XPATH, value='..')
+        print('button found!')
+        log_button.click()
+
+    def test_login_logout(self):
+        self.__log_in()
+        self.__log_out()
 
 
 class RedditAccountsFactory:
@@ -216,4 +246,5 @@ class RedditAccountsFactory:
         input("Done. Press enter to close the program...")
 
 
-RedditAccountsFactory.create_accounts()
+RedditAccountsFactory.create_accounts(1)
+# SignUpForReddit().test_login_logout()
