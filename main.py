@@ -5,6 +5,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
@@ -27,6 +28,7 @@ class SignUpForReddit:
                  password: str = "some_password",
                  is_detached: bool = True,
                  use_proxy: bool = True, ):
+        self.__is_detached = is_detached
         self.is_re_test = False
         self.__use_proxy = use_proxy
         self.__reg_url = "https://www.reddit.com/account/register/?experiment_d2x_2020ify_buttons=enabled" \
@@ -35,15 +37,15 @@ class SignUpForReddit:
         self.__user_agent_headers = 'Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                                     'Chrome/37.0.2049.0 Safari/537.36'
 
-        self.__proxy_list = ["39.59.1.14:8080", "118.31.112.32:80", "51.124.209.11:80", "109.254.62.194:9090"]
+        self.__proxy_list = ["199.243.245.94:8080"]
         self.__used_proxies_list = []
         self.__email = email
         self.__password = password
         self.__reg_username = None
         self.__reg_field = None
         self.__continue_button = None
-        chrome_opts = self.__init_chrome_opts(is_detached)
-        self.__chrome = webdriver.Chrome(options=chrome_opts)
+        self.__chrome_opts = self.__init_chrome_opts(is_detached)
+        self.__chrome = webdriver.Chrome(options=self.__chrome_opts)
 
     def __init_chrome_opts(self, is_detached) -> Options:
         chrome_opts = Options()
@@ -54,8 +56,12 @@ class SignUpForReddit:
         return chrome_opts
 
     def __go_to_reddit_registration_page(self) -> None:
-        self.__chrome.implicitly_wait(12)
-        self.__chrome.get(self.__reg_url)
+        self.__chrome.implicitly_wait(3)
+        try:
+            self.__chrome.get(self.__reg_url)
+        except WebDriverException as wde:
+            print(wde)
+            self.__restart_webdriver_with_new_proxy()
 
     def __printing_email(self):
         try:
@@ -69,15 +75,23 @@ class SignUpForReddit:
             # self.__check_for_use_proxy_and_restart()
 
     def __save_value_from_reg_name(self):
-        self.__reg_username = self.__chrome.find_element(by=By.ID, value="regUsername").get_attribute("value")
+        try:
+            self.__reg_username = self.__chrome.find_element(by=By.ID, value="regUsername").get_attribute("value")
+        except NoSuchElementException as nsee:
+            print(nsee)
 
     def __get_reg_field(self):
         self.__reg_field = self.__chrome.find_element(by=By.ID, value="regPassword")
 
     def __printing_password(self):
-        for char in self.__password:
-            self.__reg_field.send_keys(char)
-            self.__wait(0.1)
+        try:
+            self.__get_reg_field()
+            for char in self.__password:
+                self.__reg_field.send_keys(char)
+                self.__wait(0.1)
+            self.__submit_regfield()
+        except NoSuchElementException as nsee:
+            print(nsee)
 
     def __submit_regfield(self):
         self.__reg_field.send_keys(Keys.ENTER)
@@ -93,6 +107,8 @@ class SignUpForReddit:
             print(rec_exc)
         except StaleElementReferenceException as sere:
             print(sere)
+        except TimeoutException as te:
+            print(te)
 
     def __recaptcha_exception_test(self):
         if self.is_re_test:
@@ -104,7 +120,10 @@ class SignUpForReddit:
 
     def __click_continue(self):
         try:
+            self.__get_cont_butt()
             self.__continue_button.click()
+        except NoSuchElementException as nsee:
+            print(nsee)
         except StaleElementReferenceException as sere:
             print(sere)
         except ElementClickInterceptedException as ecie:
@@ -117,64 +136,43 @@ class SignUpForReddit:
     def __wait(seconds):
         sleep(seconds)
 
-    def __check_for_use_proxy(self):
-        if self.__use_proxy and self.__proxy_list:
-            self.__set_new_proxy()
-
-    def __check_for_use_proxy_and_restart(self):
+    def __check_for_use_proxy_and_restart_wd_with_new_proxy(self):
         if self.__use_proxy and self.__proxy_list is not None:
-            self.__set_new_proxy()
-            self.__restart_webdriver()
+            self.__restart_webdriver_with_new_proxy()
 
-    def __set_new_proxy(self):
-        # new_proxy_opt = Options().add_argument(f"--proxy-server={self.proxy_list.pop()}")
-        if len(self.__proxy_list) != 0:
-            proxy = self.__proxy_list.pop()
-            self.__used_proxies_list.append(proxy)
-            self.__chrome.capabilities['proxy'] = {
-                "httpProxy": proxy,
-                "ftpProxy": proxy,
-                "sslProxy": proxy,
-                "proxyType": "MANUAL",
-            }
-            print("Proxy changed to ", self.__chrome.capabilities['proxy'])
-        else:
-            print("There is no proxy left! Start from begin.")
-            self.__proxy_list.extend(self.__used_proxies_list)
-
-    def __set_new_proxy_1(self):
+    def __get_new_proxies(self):
         proxy_list = self.__proxy_list
-        if len(self.__proxy_list) != 0:
+        if len(proxy_list) != 0:
             proxy = proxy_list.pop()
             self.__used_proxies_list.append(proxy)
-
-            # hostname = proxy.split(':')[0]
-            # port = proxy.split(':')[0]
-            # p = Proxy()
-            # p.proxy_type = ProxyType.MANUAL
-            # p.http_proxy = '{hostname}:{port}'.format(hostname=hostname, port=port)
-            # p.ssl_proxy = '{hostname}:{port}'.format(hostname=hostname, port=port)
-            # capabilities = webdriver.DesiredCapabilities.CHROME
-            # p.add_to_capabilities(capabilities)
-            # self.__chrome.desired_capabilities = capabilities
+            print("Set new proxy:", proxy)
+            return '--proxy-server=%s' % proxy
         else:
             print("There is no proxy left! Start from begin.")
-            self.__proxy_list.extend(self.__used_proxies_list)
+            self.__proxy_list.extend(self.__used_proxies_list.copy())
+            self.__used_proxies_list.clear()
+            return self.__get_new_proxies()
 
-    def __restart_webdriver(self):
+    def __restart_webdriver_with_new_proxy(self):
         self.__reg_username = None
         self.__reg_field = None
         self.__continue_button = None
-        self.__chrome.close()
-
+        self.__quit_browser()
+        self.__recreate_chrome_with_new_proxies()
         self.execute()
+
+    def __recreate_chrome_with_new_proxies(self):
+        new_proxy_str = self.__get_new_proxies()
+        self.__chrome_opts.add_argument(new_proxy_str)
+        self.__quit_browser()
+        self.__chrome = webdriver.Chrome(options=self.__chrome_opts)
 
     def __check_for_completed_signup(self):
         try:
             WebDriverWait(self.__chrome, 3).until(EC.url_to_be("https://www.reddit.com/"))
         except TimeoutException as toe:
             print(toe)
-            self.__check_for_use_proxy_and_restart()
+            self.__check_for_use_proxy_and_restart_wd_with_new_proxy()
 
     def test_execute(self):
         self.__go_to_reddit_registration_page()
@@ -209,22 +207,18 @@ class SignUpForReddit:
         # input("Enter any key to continue...")
         self.__go_to_reddit_registration_page()
         self.__printing_email()
-        self.__wait(2)
+        self.__wait(1)
         self.__save_value_from_reg_name()
-        self.__get_reg_field()
         self.__printing_password()
-        self.__wait(2)
-        self.__submit_regfield()
-        self.__wait(2)
-        self.__get_cont_butt()
+        self.__wait(1)
         self.__click_continue()
-        self.__wait(2)
+        self.__wait(1)
         self.__solve_captcha()
         self.__click_continue()
         self.__check_for_completed_signup()
         self.__log_out()
-        # sys.exit()
-        # self.__quit_browser()
+        self.__wait(3)
+        self.__quit_browser()
         return {
             'username': self.__reg_username,
             'email': self.__email,
@@ -233,7 +227,7 @@ class SignUpForReddit:
         }
 
     def check_for_proxy(self):
-        self.__set_new_proxy()
+        self.__recreate_chrome_with_new_proxies()
         self.__chrome.get('http://www.whatismyip.com')
 
 
@@ -262,6 +256,15 @@ class RedditAccountsFactory:
             pswd = data['pswd']
             acc_details = SignUpForReddit(email=email, password=pswd).execute()
             accounts.append(acc_details)
+            """
+            
+            
+            
+            Make a pause...
+            
+            
+            
+            """
         pprint.pp(accounts)
         input("Done. Press enter to close the program...")
 
