@@ -14,20 +14,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium_recaptcha_solver import RecaptchaSolver
 from selenium_recaptcha_solver.exceptions import RecaptchaException
-from selenium_stealth import stealth
-
-
-# from selenium.webdriver.common.proxy import Proxy, ProxyType
-
-class Data:
-    """Stores the usernames, emails, passwords, and API keys"""
-
-    def __init__(self):
-        self.email_accounts = []
-        self.reddit_accounts = []
-
-    def __create(self):
-        pass
+# from selenium_stealth import stealth
+from selenium.webdriver.common.proxy import Proxy, ProxyType
 
 
 class CreateSkiffEmails:
@@ -55,26 +43,14 @@ class SignUpForReddit:
         self.__reg_field = None
         self.__continue_button = None
         chrome_opts = self.__init_chrome_opts(is_detached)
-        self.__chrome = webdriver.Chrome(options=chrome_opts, service=ChromeService(
-            ChromeDriverManager().install()))
-        stealth(self.__chrome,
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.5481.105 Safari/537.36',
-                languages=["en-US", "en"],
-                vendor="Google Inc.",
-                platform="Win32",
-                webgl_vendor="Intel Inc.",
-                renderer="Intel Iris OpenGL Engine",
-                fix_hairline=True,
-                )
+        self.__chrome = webdriver.Chrome(options=chrome_opts)
 
-    def __init_chrome_opts(self, is_detached: bool = False) -> Options:
+    def __init_chrome_opts(self, is_detached) -> Options:
         chrome_opts = Options()
         chrome_opts.add_argument(f'--user-agent={self.__user_agent_headers}')
         chrome_opts.add_argument("--disable-notifications")
+        chrome_opts.add_argument('--disable-blink-features=AutomationControlled')
         chrome_opts.add_experimental_option("detach", is_detached)
-        # chrome_opts.add_argument("--headless")
-        chrome_opts.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_opts.add_experimental_option('useAutomationExtension', False)
         return chrome_opts
 
     def __go_to_reddit_registration_page(self) -> None:
@@ -166,11 +142,31 @@ class SignUpForReddit:
             print("There is no proxy left! Start from begin.")
             self.__proxy_list.extend(self.__used_proxies_list)
 
+    def __set_new_proxy_1(self):
+        proxy_list = self.__proxy_list
+        if len(self.__proxy_list) != 0:
+            proxy = proxy_list.pop()
+            self.__used_proxies_list.append(proxy)
+
+            # hostname = proxy.split(':')[0]
+            # port = proxy.split(':')[0]
+            # p = Proxy()
+            # p.proxy_type = ProxyType.MANUAL
+            # p.http_proxy = '{hostname}:{port}'.format(hostname=hostname, port=port)
+            # p.ssl_proxy = '{hostname}:{port}'.format(hostname=hostname, port=port)
+            # capabilities = webdriver.DesiredCapabilities.CHROME
+            # p.add_to_capabilities(capabilities)
+            # self.__chrome.desired_capabilities = capabilities
+        else:
+            print("There is no proxy left! Start from begin.")
+            self.__proxy_list.extend(self.__used_proxies_list)
+
     def __restart_webdriver(self):
         self.__reg_username = None
         self.__reg_field = None
         self.__continue_button = None
-        self.__chrome.refresh()
+        self.__chrome.close()
+
         self.execute()
 
     def __check_for_completed_signup(self):
@@ -179,6 +175,35 @@ class SignUpForReddit:
         except TimeoutException as toe:
             print(toe)
             self.__check_for_use_proxy_and_restart()
+
+    def test_execute(self):
+        self.__go_to_reddit_registration_page()
+
+    def __go_to_reddit(self):
+        self.__chrome.get('https://www.reddit.com/')
+
+    def __log_in(self):
+        self.__chrome.get('https://www.reddit.com/login/?dest=https%3A%2F%2Fwww.reddit.com%2F')
+        login_field = self.__chrome.find_element(by=By.ID, value="loginUsername")
+        login_field.send_keys('mindcrafter94')
+        passwd_field = self.__chrome.find_element(by=By.ID, value="loginPassword")
+        passwd_field.send_keys("27JuL15:322023")
+        passwd_field.send_keys(Keys.ENTER)
+
+    def __log_out(self):
+        dropdown_menu = WebDriverWait(self.__chrome, 5).until(
+            EC.visibility_of_element_located((By.ID, 'USER_DROPDOWN_ID')))
+        dropdown_menu.click()
+        # log_button = WebDriverWait(self.__chrome, 5).until(EC.visibility_of_element_located((By.XPATH, "//*[matches(text(), \"Log "                                                                                   "Out\", \"i\")]")))
+        log_button = self.__chrome.find_element(by=By.XPATH, value="//*[contains(text(), \"Log Out\")]")
+        while log_button.tag_name != 'button':
+            log_button = log_button.find_element(by=By.XPATH, value='..')
+        print('button found!')
+        log_button.click()
+
+    def test_login_logout(self):
+        self.__log_in()
+        self.__log_out()
 
     def execute(self):
         # input("Enter any key to continue...")
@@ -207,44 +232,40 @@ class SignUpForReddit:
             'API_key': None
         }
 
-    def test_execute(self):
-        self.__go_to_reddit_registration_page()
+    def check_for_proxy(self):
+        self.__set_new_proxy()
+        self.__chrome.get('http://www.whatismyip.com')
 
-    def __go_to_reddit(self):
-        self.__chrome.get('https://www.reddit.com/')
 
-    def __log_in(self):
-        self.__chrome.get('https://www.reddit.com/login/?dest=https%3A%2F%2Fwww.reddit.com%2F')
-        login_field = self.__chrome.find_element(by=By.ID, value="loginUsername")
-        login_field.send_keys('mindcrafter94')
-        passwd_field = self.__chrome.find_element(by=By.ID, value="loginPassword")
-        passwd_field.send_keys("27JuL15:322023")
-        passwd_field.send_keys(Keys.ENTER)
+class Data:
+    """Stores the usernames, emails, passwords, and API keys"""
 
-    def __log_out(self):
-        dropdown_menu = WebDriverWait(self.__chrome, 5).until(EC.visibility_of_element_located((By.ID, 'USER_DROPDOWN_ID')))
-        dropdown_menu.click()
-        # log_button = WebDriverWait(self.__chrome, 5).until(EC.visibility_of_element_located((By.XPATH, "//*[matches(text(), \"Log "
-        #                                                                                   "Out\", \"i\")]")))
-        log_button = self.__chrome.find_element(by=By.XPATH, value="//*[contains(text(), \"Log Out\")]")
-        while log_button.tag_name != 'button':
-            log_button = log_button.find_element(by=By.XPATH, value='..')
-        print('button found!')
-        log_button.click()
+    email_pswd_list = [{"email": "craftsman94.test@gmail.com", "pswd": "craftsman94.test@gmail."[::-1]},
+                       {"email": "mindblow94@skiff.com", "pswd": "mindblow94@skiff."[::-1]},
+                       {"email": "mindblow94.0@skiff.com", "pswd": "mindblow94.0@skiff."[::-1]},
+                       {"email": "mindblow94.1@skiff.com", "pswd": "mindblow94.1@skiff."[::-1]}]
 
-    def test_login_logout(self):
-        self.__log_in()
-        self.__log_out()
+    def __init__(self):
+        self.reddit_accounts = []
+
+    def __create(self):
+        pass
 
 
 class RedditAccountsFactory:
     @staticmethod
     def create_accounts(number_of_acc: int = 1):
+        accounts = []
         for i in range(1, number_of_acc + 1):
-            acc_details = SignUpForReddit().execute()
-            pprint.pp(acc_details)
+            data = Data.email_pswd_list.pop()
+            email = data['email']
+            pswd = data['pswd']
+            acc_details = SignUpForReddit(email=email, password=pswd).execute()
+            accounts.append(acc_details)
+        pprint.pp(accounts)
         input("Done. Press enter to close the program...")
 
 
-RedditAccountsFactory.create_accounts(1)
 # SignUpForReddit().test_login_logout()
+# RedditAccountsFactory.create_accounts(3)
+SignUpForReddit().check_for_proxy()
