@@ -248,7 +248,6 @@ class SignUpForReddit:
 
     def __exception_handler(self, delay_in_seconds=0, exception: Exception = None) -> None:
         print(exception.__class__.__name__)
-        # traceback.print_exc()
         self.__restart_chrome(delay_in_seconds)
 
     def actions(self):
