@@ -33,15 +33,17 @@ class SignUpForReddit:
     def __init__(self, email: str = "craftsman94.test@gmail.com",
                  password: str = "some_password",
                  is_detached: bool = True,
-                 use_proxy: bool = True, ):
+                 use_proxy: bool = False, ):
         # self.exceptions_tuple = (RecaptchaException, TimeoutException, MaxRetryError, ElementClickInterceptedException, NoSuchElementException)
-        self.exceptions_tuple = (Exception,)
+        self.__delay_after_failed_attempt = 60
+        self.exception_tuple = (
+            ElementClickInterceptedException, RecaptchaException, WebDriverException)
         self.__timeout = 3
+        self.__use_proxy = use_proxy
         self.__is_proxy_set = False
         self.__is_repeat = True
         self.__is_detached = is_detached
         self.is_re_test = False
-        self.__use_proxy = use_proxy
         self.__reg_url = "https://www.reddit.com/account/register/?experiment_d2x_2020ify_buttons=enabled" \
                          "&use_accountmanager=true&experiment_d2x_google_sso_gis_parity=enabled" \
                          "&experiment_d2x_onboarding=enabled&experiment_d2x_am_modal_design_update=enabled"
@@ -57,6 +59,7 @@ class SignUpForReddit:
         self.__continue_button = None
         self.__chrome_opts = self.__init_chrome_opts(is_detached)
         self.__chrome = webdriver.Chrome(options=self.__chrome_opts)
+        # self.__chrome.
         self.__chrome.implicitly_wait(8)
 
     def __init_chrome_opts(self, is_detached) -> Options:
@@ -103,7 +106,7 @@ class SignUpForReddit:
         solver = RecaptchaSolver(driver=self.__chrome)
         recaptcha_iframe = WebDriverWait(self.__chrome, self.__timeout).until(
             EC.visibility_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]')))
-        self.__recaptcha_exception_test()
+        # self.__recaptcha_exception_test()
         solver.click_recaptcha_v2(iframe=recaptcha_iframe)
 
     def __recaptcha_exception_test(self):
@@ -122,23 +125,17 @@ class SignUpForReddit:
         self.__chrome.quit()
 
     @staticmethod
-    def wait(seconds):
-        print("Waiting for", f"{round(seconds / 60.0, 2)} minutes", f"({seconds} seconds).")
+    def wait(seconds: float):
+        print("Waiting for", f"{math.floor(seconds / 60.0)}m:{round(seconds % 60, 3)}s")
         sleep(seconds)
 
-    def __restart_chrome(self):
-        self.__is_repeat = True
-        if self.__use_proxy:
-            self.__restart_webdriver_with_new_proxy()
-        else:
-            print("Proxy is not used!")
-
-    def __restart_webdriver_with_new_proxy(self):
+    def __restart_chrome(self, delay_after_quitting_in_sec: int = 0):
         self.__reg_username = None
         self.__reg_field = None
         self.__continue_button = None
         self.__quit_browser()
-        self.__recreate_chrome_with_new_proxies()
+        self.wait(delay_after_quitting_in_sec)
+        self.__recreate_chrome()
 
     def __get_new_proxies(self):
         proxy_list = self.__proxy_list
@@ -154,9 +151,8 @@ class SignUpForReddit:
             return None
 
     def __proxy_switcher(self):
-        proxy_arg = self.__get_new_proxies()
-        self.__chrome_opts = self.__init_chrome_opts(self.__is_detached)
-        if proxy_arg:
+        if self.__use_proxy:
+            proxy_arg = self.__get_new_proxies()
             self.__chrome_opts.add_argument(proxy_arg)
             self.__is_proxy_set = True
             self.__timeout = 20
@@ -166,42 +162,61 @@ class SignUpForReddit:
             self.__timeout = 3
             print('Change timeout to', self.__timeout)
 
-    def __recreate_chrome_with_new_proxies(self):
+    def __recreate_chrome(self):
+        self.__chrome_opts = self.__init_chrome_opts(self.__is_detached)
         self.__proxy_switcher()
-        # self.wait(6)
         self.__chrome = webdriver.Chrome(options=self.__chrome_opts)
 
     class SignUpException(Exception):
-        def __int__(self, message='', delay_in_minutes: int = 0):
+        def __init__(self, message: str = '', delay: tuple = ()):
             print(message)
-            print('Delay:', delay_in_minutes, 'minutes')
-            print('Delay:', math.trunc(delay_in_minutes * 60.0), 'seconds')
+            time = delay[0]
+            units = delay[1]
+            if units == 'х':
+                time += 1
+                time *= 60
+            elif units == 'с':
+                time += 60
+            self.delay_in_seconds = time
+            # print('Delay:', self.delay_in_seconds, 'seconds',
+            #       self.delay_in_seconds / 60.0, 'minutes', "(+1 minute additional)")
 
     def __check_for_completed_signup(self):
-        try:
-            self.check_for_signin()
-        except TimeoutException as te:
-            self.check_for_waiting_notification()
+        self.check_for_waiting_notification()
+        self.check_for_signin()
 
     def check_for_signin(self):
         WebDriverWait(self.__chrome, self.__timeout).until(EC.url_to_be("https://www.reddit.com/"))
 
     def check_for_waiting_notification(self):
-        notification = WebDriverWait(self.__chrome, 3, ignored_exceptions=[TimeoutException]).until(
-            EC.visibility_of_element_located(
-                (By.XPATH, "//*[contains(text(), \"Looks like you've been doing that a lot.\")]")))
-        notification_text = notification.text
-        print(notification_text)
+        # Translate the processing of the exception in exception handler
+        try:
+            notification = WebDriverWait(self.__chrome, 3).until(
+                EC.visibility_of_element_located(
+                    (By.XPATH, "//*[contains(text(), \"Looks like you've been doing that a lot.\")]")))
+            notification_text = notification.text
+            print(notification_text)
+            time_and_units = self.search_for_time(notification_text)
+            if time_and_units:
+                delay = self.parsing_time_and_units(time_and_units)
+                raise SignUpForReddit.SignUpException(delay=delay)
+        except TimeoutException:
+            pass
+
+    @staticmethod
+    def parsing_time_and_units(time_and_units):
+        groups_tuple = time_and_units.groups()
+        number = int(groups_tuple[0])
+        units = groups_tuple[1]
+        if units[0] == 'с':
+            return number, 'с'
+        else:
+            return number, 'х'
+
+    @staticmethod
+    def search_for_time(notification_text):
         result = re.search(f'(\d+)\s(\w+)', notification_text)
-        if result:
-            groups_tuple = result.groups()
-            number = int(groups_tuple[0])
-            units = groups_tuple[1]
-            if units[0] == 'с':
-                self.wait(number)
-            else:
-                self.wait(number * 60)
-            raise SignUpForReddit.SignUpException()
+        return result
 
     def test_execute(self):
         self.__go_to_reddit_registration_page()
@@ -231,10 +246,10 @@ class SignUpForReddit:
         self.__log_in()
         self.__log_out()
 
-    def __exception_handler(self, exception: Exception) -> None:
-        # print("Exception type: ", type(exception))
-        traceback.print_exc()
-        self.__restart_chrome()
+    def __exception_handler(self, delay_in_seconds=0, exception: Exception = None) -> None:
+        print(exception.__class__.__name__)
+        # traceback.print_exc()
+        self.__restart_chrome(delay_in_seconds)
 
     def actions(self):
         self.__display_opts()
@@ -256,11 +271,15 @@ class SignUpForReddit:
 
     def execute(self):
         while self.__is_repeat:
-            self.__is_repeat = False
             try:
                 self.actions()
-            except self.exceptions_tuple as exception:
-                self.__exception_handler(exception)
+                self.__is_repeat = False
+                self.__decrease_delay()
+            except (RecaptchaException, TimeoutException, ElementClickInterceptedException) as e:
+                self.__exception_handler(delay_in_seconds=self.__delay_after_failed_attempt, exception=e)
+                self.__increase_delay()
+            except SignUpForReddit.SignUpException as sue:
+                self.__exception_handler(sue.delay_in_seconds, exception=sue)
         return {
             'username': self.__reg_username,
             'email': self.__email,
@@ -269,12 +288,12 @@ class SignUpForReddit:
         }
 
     def check_for_proxy(self):
-        self.__recreate_chrome_with_new_proxies()
+        self.__recreate_chrome()
         self.__chrome.get('http://www.whatismyip.com')
 
     class RedditAccountsFactory:
         @staticmethod
-        def create_accounts(number_of_acc: int = 1, delay_int_minutes: int = 0, use_proxy: bool = True):
+        def create_accounts(number_of_acc: int = 1, delay_int_minutes: int = 0, use_proxy: bool = False):
             accounts = []
             for i in range(1, number_of_acc + 1):
                 data = Data.email_pswd_list.pop()
@@ -283,10 +302,23 @@ class SignUpForReddit:
                 acc_details = SignUpForReddit(email=email, password=pswd, use_proxy=use_proxy).execute()
                 accounts.append(acc_details)
                 minutes = 60 * delay_int_minutes
-                print("Waiting for", delay_int_minutes, "minutes")
-                SignUpForReddit.wait(60*minutes)
+                # print("Waiting for", delay_int_minutes, "minutes")
+                SignUpForReddit.wait(60 * minutes)
 
             pprint.pp(accounts)
+
+    def __close_page(self):
+        self.__chrome.close()
+        self.__chrome.switch_to.default_content()
+
+    def __restart_webdriver_without_new_proxy(self, delay_after_quitting_in_min):
+        pass
+
+    def __increase_delay(self):
+        self.__delay_after_failed_attempt += 60
+
+    def __decrease_delay(self):
+        self.__delay_after_failed_attempt -= 60
 
 
 class Data:
