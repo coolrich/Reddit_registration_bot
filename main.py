@@ -172,32 +172,36 @@ class SignUpForReddit:
         self.__chrome = webdriver.Chrome(options=self.__chrome_opts)
 
     class SignUpException(Exception):
-        def __int__(self, message=''):
+        def __int__(self, message='', delay_in_minutes: int = 0):
             print(message)
+            print('Delay:', delay_in_minutes, 'minutes')
+            print('Delay:', math.trunc(delay_in_minutes * 60.0), 'seconds')
 
     def __check_for_completed_signup(self):
-        notification = None
         try:
-            notification = WebDriverWait(self.__chrome, 3, ignored_exceptions=[TimeoutException]).until(
-                EC.visibility_of_element_located(
-                    (By.XPATH, "//*[contains(text(), \"Looks like you've been doing that a lot.\")]")))
-            print(notification.text)
+            self.check_for_signin()
         except TimeoutException as te:
-            pass
-        if notification:
-            notification_text = notification.text
-            result = re.search(f'(\d+)\s(\w+)', notification_text)
-            if result:
-                groups_tuple = result.groups()
-                number = int(groups_tuple[0])
-                units = groups_tuple[1]
-                if units[0] == 'с':
-                    self.wait(number)
-                else:
-                    self.wait(number * 60)
-                raise SignUpForReddit.SignUpException()
-        else:
-            WebDriverWait(self.__chrome, self.__timeout).until(EC.url_to_be("https://www.reddit.com/"))
+            self.check_for_waiting_notification()
+
+    def check_for_signin(self):
+        WebDriverWait(self.__chrome, self.__timeout).until(EC.url_to_be("https://www.reddit.com/"))
+
+    def check_for_waiting_notification(self):
+        notification = WebDriverWait(self.__chrome, 3, ignored_exceptions=[TimeoutException]).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, "//*[contains(text(), \"Looks like you've been doing that a lot.\")]")))
+        notification_text = notification.text
+        print(notification_text)
+        result = re.search(f'(\d+)\s(\w+)', notification_text)
+        if result:
+            groups_tuple = result.groups()
+            number = int(groups_tuple[0])
+            units = groups_tuple[1]
+            if units[0] == 'с':
+                self.wait(number)
+            else:
+                self.wait(number * 60)
+            raise SignUpForReddit.SignUpException()
 
     def test_execute(self):
         self.__go_to_reddit_registration_page()
@@ -280,7 +284,7 @@ class SignUpForReddit:
                 accounts.append(acc_details)
                 minutes = 60 * delay_int_minutes
                 print("Waiting for", delay_int_minutes, "minutes")
-                SignUpForReddit.wait(minutes)
+                SignUpForReddit.wait(60*minutes)
 
             pprint.pp(accounts)
 
