@@ -35,6 +35,7 @@ class SignUpForReddit:
                  is_detached: bool = True,
                  use_proxy: bool = False, ):
         # self.exceptions_tuple = (RecaptchaException, TimeoutException, MaxRetryError, ElementClickInterceptedException, NoSuchElementException)
+        self.delay_step = 10*60
         self.__delay_after_failed_attempt = 60
         self.exception_tuple = (
             ElementClickInterceptedException, RecaptchaException, WebDriverException)
@@ -107,6 +108,7 @@ class SignUpForReddit:
         recaptcha_iframe = WebDriverWait(self.__chrome, self.__timeout).until(
             EC.visibility_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]')))
         # self.__recaptcha_exception_test()
+
         solver.click_recaptcha_v2(iframe=recaptcha_iframe)
 
     def __recaptcha_exception_test(self):
@@ -314,10 +316,10 @@ class SignUpForReddit:
         pass
 
     def __increase_delay(self):
-        self.__delay_after_failed_attempt += 60
+        self.__delay_after_failed_attempt += self.delay_step
 
     def __decrease_delay(self):
-        self.__delay_after_failed_attempt -= 60
+        self.__delay_after_failed_attempt -= self.delay_step
 
 
 class Data:
