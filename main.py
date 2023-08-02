@@ -1,5 +1,6 @@
 import math
 import pprint
+import random
 import re
 import trace
 import traceback
@@ -48,9 +49,14 @@ class SignUpForReddit:
         self.__reg_url = "https://www.reddit.com/account/register/?experiment_d2x_2020ify_buttons=enabled" \
                          "&use_accountmanager=true&experiment_d2x_google_sso_gis_parity=enabled" \
                          "&experiment_d2x_onboarding=enabled&experiment_d2x_am_modal_design_update=enabled"
-        self.__user_agent_headers = 'Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                                    'Chrome/37.0.2049.0 Safari/537.36'
-
+        self.__user_agent_headers = ['Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)'
+                                    ' Chrome/37.0.2049.0 Safari/537.36',
+                                     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)'
+                                     ' Chrome/33.0.1750.517 Safari/537.36',
+                                     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like'
+                                     ' Gecko) Chrome/24.0.1309.0 Safari/537.17'
+                                     ]
+        self.__user_agent_headers_index = 0
         self.__proxy_list = ["199.243.245.94:8080"]
         self.__used_proxies_list = []
         self.__email = email
@@ -65,11 +71,17 @@ class SignUpForReddit:
 
     def __init_chrome_opts(self, is_detached) -> Options:
         chrome_opts = Options()
-        chrome_opts.add_argument(f'--user-agent={self.__user_agent_headers}')
+        self.__choose_different_headers(chrome_opts)
         chrome_opts.add_argument("--disable-notifications")
         chrome_opts.add_argument('--disable-blink-features=AutomationControlled')
         chrome_opts.add_experimental_option("detach", is_detached)
         return chrome_opts
+
+    def __choose_different_headers(self, chrome_opts):
+        self.__user_agent_headers_index = self.__user_agent_headers_index % len(self.__user_agent_headers)
+        i = self.__user_agent_headers_index
+        chrome_opts.add_argument(f'--user-agent={self.__user_agent_headers[i]}')
+        self.__user_agent_headers_index += 1
 
     def __display_opts(self):
         print('-' * 100)
@@ -82,33 +94,30 @@ class SignUpForReddit:
 
     def __printing_email(self):
         email_field = self.__chrome.find_element(by=By.ID, value="regEmail")
+        email_field.click()
+        self.__imitation_of_human_delay(2, 4)
         for char in self.__email:
             email_field.send_keys(char)
-            self.wait(0.1)
+            self.__imitation_of_human_delay()
         email_field.send_keys(Keys.ENTER)
 
     def __save_value_from_reg_name(self):
         self.__reg_username = self.__chrome.find_element(by=By.ID, value="regUsername").get_attribute("value")
 
-    def __get_reg_field(self):
-        self.__reg_field = self.__chrome.find_element(by=By.ID, value="regPassword")
-
     def __printing_password(self):
-        self.__get_reg_field()
+        self.__reg_field = self.__chrome.find_element(by=By.ID, value="regPassword")
+        self.__reg_field.click()
+        self.__imitation_of_human_delay(4, 6)
         for char in self.__password:
             self.__reg_field.send_keys(char)
-            self.wait(0.1)
-        self.__submit_regfield()
-
-    def __submit_regfield(self):
+            self.__imitation_of_human_delay()
+        self.__imitation_of_human_delay(5, 12)
         self.__reg_field.send_keys(Keys.ENTER)
 
     def __solve_captcha(self):
         solver = RecaptchaSolver(driver=self.__chrome)
         recaptcha_iframe = WebDriverWait(self.__chrome, self.__timeout).until(
             EC.visibility_of_element_located((By.XPATH, '//iframe[@title="reCAPTCHA"]')))
-        # self.__recaptcha_exception_test()
-
         solver.click_recaptcha_v2(iframe=recaptcha_iframe)
 
     def __recaptcha_exception_test(self):
@@ -128,7 +137,7 @@ class SignUpForReddit:
 
     @staticmethod
     def wait(seconds: float):
-        print("Waiting for", f"{math.floor(seconds / 60.0)}m:{round(seconds % 60, 3)}s")
+        print("Waiting for", f"{math.floor(seconds / 60.0)}m:{round(seconds % 60, 2)}s")
         sleep(seconds)
 
     def __restart_chrome(self, delay_after_quitting_in_sec: int = 0):
@@ -254,20 +263,19 @@ class SignUpForReddit:
 
     def actions(self):
         self.__display_opts()
-        self.wait(5)
         self.__go_to_reddit_registration_page()
         self.__printing_email()
-        self.wait(1)
         self.__save_value_from_reg_name()
+        self.__imitation_of_human_delay(3, 5)
         self.__printing_password()
-        self.wait(1)
+        self.__imitation_of_human_delay(2, 5)
         self.__click_continue()
-        self.wait(1)
+        self.__imitation_of_human_delay(3, 6)
         self.__solve_captcha()
         self.__click_continue()
         self.__check_for_completed_signup()
         self.__log_out()
-        self.wait(3)
+        self.__imitation_of_human_delay(3, 6)
         self.__quit_browser()
 
     def execute(self):
@@ -320,6 +328,12 @@ class SignUpForReddit:
 
     def __decrease_delay(self):
         self.__delay_after_failed_attempt -= self.delay_step
+        if self.__delay_after_failed_attempt <= 0:
+            self.__delay_after_failed_attempt = 0
+
+    def __imitation_of_human_delay(self, t1=0.1, t2=0.9):
+        delay = t1 + random.random() * (t2 - t1)
+        self.wait(round(delay, 2))
 
 
 class Data:
