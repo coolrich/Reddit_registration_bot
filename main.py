@@ -2,8 +2,6 @@ import math
 import pprint
 import random
 import re
-import trace
-import traceback
 from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException
@@ -12,16 +10,13 @@ from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium_recaptcha_solver import RecaptchaSolver
 from selenium_recaptcha_solver.exceptions import RecaptchaException
 from urllib3.exceptions import MaxRetryError
-# from selenium_stealth import stealth
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 
 
@@ -35,7 +30,6 @@ class SignUpForReddit:
                  password: str = "some_password",
                  is_detached: bool = True,
                  use_proxy: bool = False, ):
-        # self.exceptions_tuple = (RecaptchaException, TimeoutException, MaxRetryError, ElementClickInterceptedException, NoSuchElementException)
         self.delay_step = 10*60
         self.__delay_after_failed_attempt = 60
         self.exception_tuple = (
