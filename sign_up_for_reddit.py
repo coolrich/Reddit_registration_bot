@@ -1,8 +1,5 @@
-import math
 import pprint
-import random
 import re
-from time import sleep
 
 from selenium import webdriver
 from selenium.common.exceptions import ElementClickInterceptedException
@@ -11,14 +8,15 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium_recaptcha_solver import RecaptchaSolver
 from selenium_recaptcha_solver.exceptions import RecaptchaException
 
+from signup_for import SignUpFor
 
-class SignUpForReddit:
+
+class SignUpForReddit(SignUpFor):
 
     def __init__(self, email: str = "craftsman94.test@gmail.com",
                  password: str = "some_password",
@@ -85,20 +83,11 @@ class SignUpForReddit:
 
     def __printing_email(self):
         email_field = self.__chrome.find_element(by=By.ID, value="regEmail")
-        self.__printing(email_field, self.__email)
+        self._printing(email_field, self.__email)
 
     def __printing_password(self):
         self.__pswd_field = self.__chrome.find_element(by=By.ID, value="regPassword")
-        self.__printing(self.__pswd_field, self.__password)
-
-    def __printing(self, field: WebElement, text: str):
-        field.click()
-        self.__imitation_of_human_delay(2, 4)
-        for char in text:
-            field.send_keys(char)
-            self.__imitation_of_human_delay()
-        self.__imitation_of_human_delay(5, 12)
-        field.send_keys(Keys.ENTER)
+        self._printing(self.__pswd_field, self.__password)
 
     def __solve_captcha(self):
         solver = RecaptchaSolver(driver=self.__chrome)
@@ -120,11 +109,6 @@ class SignUpForReddit:
 
     def __quit_browser(self):
         self.__chrome.quit()
-
-    @staticmethod
-    def wait(seconds: float):
-        print("Waiting for", f"{math.floor(seconds / 60.0)}m:{round(seconds % 60, 2)}s")
-        sleep(seconds)
 
     def __restart_chrome(self, delay_after_quitting_in_sec: int = 0):
         self.__reg_username = None
@@ -252,16 +236,16 @@ class SignUpForReddit:
         self.__go_to_reddit_registration_page()
         self.__printing_email()
         self.__save_value_from_reg_name()
-        self.__imitation_of_human_delay(3, 5)
+        self._imitation_of_human_delay(3, 5)
         self.__printing_password()
-        self.__imitation_of_human_delay(2, 5)
+        self._imitation_of_human_delay(2, 5)
         self.__click_continue()
-        self.__imitation_of_human_delay(3, 6)
+        self._imitation_of_human_delay(3, 6)
         self.__solve_captcha()
         self.__click_continue()
         self.__check_for_completed_signup()
         self.__log_out()
-        self.__imitation_of_human_delay(3, 6)
+        self._imitation_of_human_delay(3, 6)
         self.__quit_browser()
 
     def execute(self):
@@ -300,7 +284,3 @@ class SignUpForReddit:
         self.__delay_after_failed_attempt -= self.delay_step
         if self.__delay_after_failed_attempt <= 0:
             self.__delay_after_failed_attempt = 0
-
-    def __imitation_of_human_delay(self, t1=0.1, t2=0.3):
-        delay = t1 + random.random() * (t2 - t1)
-        self.wait(round(delay, 2))

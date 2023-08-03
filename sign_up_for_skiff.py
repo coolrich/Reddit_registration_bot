@@ -6,9 +6,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from time import sleep
+from signup_for import SignUpFor
 
 
-class SignUpForSkiff:
+class SignUpForSkiff(SignUpFor):
 
     def __init__(self):
         options = Options()
@@ -29,7 +30,7 @@ class SignUpForSkiff:
 
     def __find_email_field_and_fill_it(self):
         email_field = self.__chrome.find_element(by=By.XPATH, value='//input[@placeholder = "New email address"]')
-
+        #
 
     @staticmethod
     def random_waiting(t1=0.5, t2=1.5):
