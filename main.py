@@ -22,4 +22,5 @@ class RedditAccountsFactory:
         minutes = 60 * delay_int_minutes
         SignUpForReddit.wait(60 * minutes)
 
-RedditAccountsFactory.create_accounts(3, use_proxy=False)
+
+RedditAccountsFactory.create_accounts(2, use_proxy=False)

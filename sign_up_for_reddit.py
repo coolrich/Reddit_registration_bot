@@ -11,6 +11,7 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium_recaptcha_solver import RecaptchaSolver
@@ -49,7 +50,7 @@ class SignUpForReddit:
         self.__email = email
         self.__password = password
         self.__reg_username = None
-        self.__reg_field = None
+        self.__pswd_field = None
         self.__continue_button = None
         self.__chrome_opts = self.__init_chrome_opts(is_detached)
         self.__chrome = webdriver.Chrome(options=self.__chrome_opts)
@@ -79,27 +80,25 @@ class SignUpForReddit:
     def __go_to_reddit_registration_page(self) -> None:
         self.__chrome.get(self.__reg_url)
 
-    def __printing_email(self):
-        email_field = self.__chrome.find_element(by=By.ID, value="regEmail")
-        email_field.click()
-        self.__imitation_of_human_delay(2, 4)
-        for char in self.__email:
-            email_field.send_keys(char)
-            self.__imitation_of_human_delay()
-        email_field.send_keys(Keys.ENTER)
-
     def __save_value_from_reg_name(self):
         self.__reg_username = self.__chrome.find_element(by=By.ID, value="regUsername").get_attribute("value")
 
+    def __printing_email(self):
+        email_field = self.__chrome.find_element(by=By.ID, value="regEmail")
+        self.__printing(email_field, self.__email)
+
     def __printing_password(self):
-        self.__reg_field = self.__chrome.find_element(by=By.ID, value="regPassword")
-        self.__reg_field.click()
-        self.__imitation_of_human_delay(4, 6)
-        for char in self.__password:
-            self.__reg_field.send_keys(char)
+        self.__pswd_field = self.__chrome.find_element(by=By.ID, value="regPassword")
+        self.__printing(self.__pswd_field, self.__password)
+
+    def __printing(self, field: WebElement, text: str):
+        field.click()
+        self.__imitation_of_human_delay(2, 4)
+        for char in text:
+            field.send_keys(char)
             self.__imitation_of_human_delay()
         self.__imitation_of_human_delay(5, 12)
-        self.__reg_field.send_keys(Keys.ENTER)
+        field.send_keys(Keys.ENTER)
 
     def __solve_captcha(self):
         solver = RecaptchaSolver(driver=self.__chrome)
@@ -129,7 +128,7 @@ class SignUpForReddit:
 
     def __restart_chrome(self, delay_after_quitting_in_sec: int = 0):
         self.__reg_username = None
-        self.__reg_field = None
+        self.__pswd_field = None
         self.__continue_button = None
         self.__quit_browser()
         self.wait(delay_after_quitting_in_sec)
@@ -302,6 +301,6 @@ class SignUpForReddit:
         if self.__delay_after_failed_attempt <= 0:
             self.__delay_after_failed_attempt = 0
 
-    def __imitation_of_human_delay(self, t1=0.1, t2=0.9):
+    def __imitation_of_human_delay(self, t1=0.1, t2=0.3):
         delay = t1 + random.random() * (t2 - t1)
         self.wait(round(delay, 2))
