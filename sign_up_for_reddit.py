@@ -48,7 +48,7 @@ class SignUpForReddit(SignUpFor):
         self.__email = email
         self.__password = password
         self.__reg_username = None
-        self.__pswd_field = None
+        # self.__pswd_field = None
         self.__continue_button = None
         self.__chrome_opts = self.__init_chrome_opts(is_detached)
         self.__chrome = webdriver.Chrome(options=self.__chrome_opts)
@@ -81,13 +81,15 @@ class SignUpForReddit(SignUpFor):
     def __save_value_from_reg_name(self):
         self.__reg_username = self.__chrome.find_element(by=By.ID, value="regUsername").get_attribute("value")
 
-    def __printing_email(self):
-        email_field = self.__chrome.find_element(by=By.ID, value="regEmail")
-        self._printing(email_field, self.__email)
+    def __printing_email_and_press_enter(self):
+        self.email_field = self.__chrome.find_element(by=By.ID, value="regEmail")
+        self._printing(self.email_field, text=self.__email)
+        self.email_field.send_keys(Keys.ENTER)
 
-    def __printing_password(self):
-        self.__pswd_field = self.__chrome.find_element(by=By.ID, value="regPassword")
-        self._printing(self.__pswd_field, self.__password)
+    def __printing_password_and_press_enter(self):
+        pswd_field = self.__chrome.find_element(by=By.ID, value="regPassword")
+        self._printing(pswd_field, self.__password)
+        pswd_field.send_keys(Keys.ENTER)
 
     def __solve_captcha(self):
         solver = RecaptchaSolver(driver=self.__chrome)
@@ -112,7 +114,7 @@ class SignUpForReddit(SignUpFor):
 
     def __restart_chrome(self, delay_after_quitting_in_sec: int = 0):
         self.__reg_username = None
-        self.__pswd_field = None
+        # self.__pswd_field = None
         self.__continue_button = None
         self.__quit_browser()
         self.wait(delay_after_quitting_in_sec)
@@ -234,18 +236,18 @@ class SignUpForReddit(SignUpFor):
     def __actions(self):
         self.__display_opts()
         self.__go_to_reddit_registration_page()
-        self.__printing_email()
+        self.__printing_email_and_press_enter()
         self.__save_value_from_reg_name()
-        self._imitation_of_human_delay(3, 5)
-        self.__printing_password()
-        self._imitation_of_human_delay(2, 5)
+        self.imitation_of_human_delay(3, 5)
+        self.__printing_password_and_press_enter()
+        self.imitation_of_human_delay(2, 5)
         self.__click_continue()
-        self._imitation_of_human_delay(3, 6)
+        self.imitation_of_human_delay(3, 6)
         self.__solve_captcha()
         self.__click_continue()
         self.__check_for_completed_signup()
         self.__log_out()
-        self._imitation_of_human_delay(3, 6)
+        self.imitation_of_human_delay(3, 6)
         self.__quit_browser()
 
     def execute(self):
