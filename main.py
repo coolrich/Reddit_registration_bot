@@ -1,3 +1,5 @@
+import pprint
+
 from data import Data
 from sign_up_for_reddit import SignUpForReddit
 
@@ -13,7 +15,6 @@ class RedditAccountsFactory:
             acc_details = SignUpForReddit(email=email, password=pswd, use_proxy=use_proxy).execute()
             accounts.append(acc_details)
             RedditAccountsFactory.__waiting(delay_int_minutes)
-
         pprint.pp(accounts)
 
     @staticmethod

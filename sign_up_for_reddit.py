@@ -248,7 +248,7 @@ class SignUpForReddit:
         print(exception.__class__.__name__)
         self.__restart_chrome(delay_in_seconds)
 
-    def actions(self):
+    def __actions(self):
         self.__display_opts()
         self.__go_to_reddit_registration_page()
         self.__printing_email()
@@ -268,7 +268,7 @@ class SignUpForReddit:
     def execute(self):
         while self.__is_repeat:
             try:
-                self.actions()
+                self.__actions()
                 self.__is_repeat = False
                 self.__decrease_delay()
             except (RecaptchaException, TimeoutException, ElementClickInterceptedException) as e:
