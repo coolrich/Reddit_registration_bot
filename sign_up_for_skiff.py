@@ -9,14 +9,13 @@ from selenium.webdriver import Keys
 from signup_for import SignUpFor
 from password_generator import PasswordGenerator
 
-
 class SignUpForSkiff(SignUpFor):
 
     def __init__(self):
-        self.nickname = None
-        self.email_domain = '@skiff.com'
-        self.email = None
-        self.password = None
+        self.__nickname = None
+        self.__email_domain = '@skiff.com'
+        self.__email = None
+        self.__password = None
         options = Options()
         options.add_experimental_option('detach', True)
         self.__chrome = webdriver.Chrome(options=options)
@@ -36,7 +35,7 @@ class SignUpForSkiff(SignUpFor):
         print(f'Click on email field')
         while True:
             self.__create_random_username()
-            self._printing(field=email_field, text=self.nickname)
+            self._printing(field=email_field, text=self.__nickname)
             is_unique = self.__is_nickname_unique()
             if is_unique:
                 break
@@ -48,18 +47,18 @@ class SignUpForSkiff(SignUpFor):
                           .until(EC.visibility_of_element_located((By.XPATH, '//input[@placeholder = "Password"]'))))
         password_field.click()
         print(f'Click on password field')
-        self.password = self.__create_random_password()
-        self._printing(field=password_field, text=self.password)
+        self.__password = self.__create_random_password()
+        self._printing(field=password_field, text=self.__password)
 
         # Confirm password field
         confirm_password_field = self.__chrome.find_element(by=By.XPATH, value='//input[@placeholder = "Confirm '
                                                                                'password"]')
         confirm_password_field.click()
         print(f'Click on confirm password field')
-        self._printing(field=confirm_password_field, text=self.password)
+        self._printing(field=confirm_password_field, text=self.__password)
 
     def __create_random_username(self):
-        self.nickname = un_generator.generate_username(1)[0]
+        self.__nickname = un_generator.generate_username(1)[0]
 
     def __is_nickname_unique(self):
         try:
@@ -78,7 +77,7 @@ class SignUpForSkiff(SignUpFor):
             SignUpForSkiff.imitation_of_human_delay(0.01, 0.1)
 
     def __save_email(self):
-        self.__email = self.nickname + self.email_domain
+        self.__email = self.__nickname + self.__email_domain
 
     def __find_next_and_click(self):
         button = self.__chrome.find_element(by=By.XPATH, value='//span[contains(text(), "Next")]')
@@ -87,6 +86,12 @@ class SignUpForSkiff(SignUpFor):
         button.click()
         print('Click on the next button')
 
+    @staticmethod
+    def __create_random_password():
+        pg = PasswordGenerator()
+        pg.minlen = 8
+        return pg.generate()
+
     def execute(self):
         self.__chrome.get('https://app.skiff.com/')
         self.__find_sign_up_button_and_click()
@@ -94,13 +99,7 @@ class SignUpForSkiff(SignUpFor):
         self.__save_email()
         self.__find_next_and_click()
         self.__find_password_fields_and_fill_them()
-        print('Email:', self.email, '\nPassword:', self.password)
-
-    @staticmethod
-    def __create_random_password():
-        pg = PasswordGenerator()
-        pg.minlen = 8
-        return pg.generate()
+        print('Email:', self.__email, '\nPassword:', self.__password)
 
 
 SignUpForSkiff().execute()
