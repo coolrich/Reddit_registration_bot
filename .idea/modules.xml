@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../Bot/.idea/Reddit_registration_bot.iml" filepath="$PROJECT_DIR$/../Bot/.idea/Reddit_registration_bot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Reddit_registration_BOT/.idea/Reddit_registration_bot.iml" filepath="$PROJECT_DIR$/../Reddit_registration_BOT/.idea/Reddit_registration_bot.iml" />
     </modules>
   </component>
 </project>

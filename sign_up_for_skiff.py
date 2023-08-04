@@ -7,14 +7,16 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver import Keys
 from signup_for import SignUpFor
+from password_generator import PasswordGenerator
 
 
 class SignUpForSkiff(SignUpFor):
 
     def __init__(self):
-        self.nickname = ''
+        self.nickname = None
         self.email_domain = '@skiff.com'
         self.email = None
+        self.password = None
         options = Options()
         options.add_experimental_option('detach', True)
         self.__chrome = webdriver.Chrome(options=options)
@@ -22,33 +24,42 @@ class SignUpForSkiff(SignUpFor):
     def __find_sign_up_button_and_click(self):
         inner = WebDriverWait(self.__chrome, 3).until(
             EC.visibility_of_element_located((By.XPATH, "//*[contains(text(), \"Sign up\")]")))
-        print('sign up found!' if inner else 'sign up NOT found!')
+        print('Sign up found!' if inner else 'Sign up NOT found!')
         # SignUpForSkiff.random_waiting()
         SignUpFor.imitation_of_human_delay(1, 3)
         inner.find_element(by=By.XPATH, value='..').click()
-        print('Click on sign up button.')
+        print('Click on sign up button')
 
     def __find_email_field_and_fill_it(self):
         email_field = self.__chrome.find_element(by=By.XPATH, value='//input[@placeholder = "New email address"]')
         email_field.click()
-        print(f'click on email field.')
+        print(f'Click on email field')
         while True:
-            self.create_random_username()
+            self.__create_random_username()
             self._printing(field=email_field, text=self.nickname)
             is_unique = self.__is_nickname_unique()
             if is_unique:
                 break
             self.__removing_chars_in_field(field=email_field)
 
-    def create_random_username(self):
-        self.nickname = un_generator.generate_username(1)[0]
+    def __find_password_fields_and_fill_them(self):
+        # Password field
+        password_field = (WebDriverWait(self.__chrome, 5)
+                          .until(EC.visibility_of_element_located((By.XPATH, '//input[@placeholder = "Password"]'))))
+        password_field.click()
+        print(f'Click on password field')
+        self.password = self.__create_random_password()
+        self._printing(field=password_field, text=self.password)
 
-    def execute(self):
-        self.__chrome.get('https://app.skiff.com/')
-        self.__find_sign_up_button_and_click()
-        self.__find_email_field_and_fill_it()
-        self.__save_email()
-        # self.__find_next_and_click()
+        # Confirm password field
+        confirm_password_field = self.__chrome.find_element(by=By.XPATH, value='//input[@placeholder = "Confirm '
+                                                                               'password"]')
+        confirm_password_field.click()
+        print(f'Click on confirm password field')
+        self._printing(field=confirm_password_field, text=self.password)
+
+    def __create_random_username(self):
+        self.nickname = un_generator.generate_username(1)[0]
 
     def __is_nickname_unique(self):
         try:
@@ -69,9 +80,27 @@ class SignUpForSkiff(SignUpFor):
     def __save_email(self):
         self.__email = self.nickname + self.email_domain
 
-    # def __find_next_and_click(self):
-    #     self.__chrome.find_element(by=By.XPATH, value='//*[contains(text(), "Username has already been '
-    #                                                   'taken.")]').click()
+    def __find_next_and_click(self):
+        button = self.__chrome.find_element(by=By.XPATH, value='//span[contains(text(), "Next")]')
+        for _ in range(3):
+            button = button.find_element(by=By.XPATH, value='..')
+        button.click()
+        print('Click on the next button')
+
+    def execute(self):
+        self.__chrome.get('https://app.skiff.com/')
+        self.__find_sign_up_button_and_click()
+        self.__find_email_field_and_fill_it()
+        self.__save_email()
+        self.__find_next_and_click()
+        self.__find_password_fields_and_fill_them()
+        print('Email:', self.email, '\nPassword:', self.password)
+
+    @staticmethod
+    def __create_random_password():
+        pg = PasswordGenerator()
+        pg.minlen = 8
+        return pg.generate()
 
 
 SignUpForSkiff().execute()

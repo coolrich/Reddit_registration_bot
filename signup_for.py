@@ -13,7 +13,7 @@ class SignUpFor(ABC):
         for char in text:
             field.send_keys(char)
             SignUpFor.imitation_of_human_delay()
-        SignUpFor.imitation_of_human_delay(5, 12)
+        SignUpFor.imitation_of_human_delay(2, 6)
 
     @staticmethod
     def wait(seconds: float):
