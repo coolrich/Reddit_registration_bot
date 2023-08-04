@@ -2,18 +2,18 @@ import math
 import random
 from abc import ABC
 from time import sleep
-from selenium.webdriver import Keys
 from selenium.webdriver.remote.webelement import WebElement
 
 
 class SignUpFor(ABC):
-    def _printing(self, field: WebElement, text: str):
+    @staticmethod
+    def _printing(field: WebElement, text: str):
         field.click()
-        self.imitation_of_human_delay(2, 4)
+        SignUpFor.imitation_of_human_delay(2, 4)
         for char in text:
             field.send_keys(char)
-            self.imitation_of_human_delay()
-        self.imitation_of_human_delay(5, 12)
+            SignUpFor.imitation_of_human_delay()
+        SignUpFor.imitation_of_human_delay(5, 12)
 
     @staticmethod
     def wait(seconds: float):
@@ -22,5 +22,7 @@ class SignUpFor(ABC):
 
     @staticmethod
     def imitation_of_human_delay(t1=0.1, t2=0.3):
+        if t1 > t2:
+            t1 = t2
         delay = t1 + random.random() * (t2 - t1)
         SignUpFor.wait(round(delay, 2))
