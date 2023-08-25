@@ -52,7 +52,6 @@ class SignUpForReddit(SignUpFor):
         self.__continue_button = None
         self.__chrome_opts = self.__init_chrome_opts(is_detached)
         self.__chrome = webdriver.Chrome(options=self.__chrome_opts)
-        # self.__chrome.
         self.__chrome.implicitly_wait(8)
 
     def __init_chrome_opts(self, is_detached) -> Options:
