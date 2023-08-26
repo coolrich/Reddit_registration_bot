@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver import Keys
 from signup_for import SignUpFor
-from password_generator import PasswordGenerator
+from password_generator import generate_pswd
 
 class SignUpForSkiff(SignUpFor):
 
@@ -88,9 +88,8 @@ class SignUpForSkiff(SignUpFor):
 
     @staticmethod
     def __create_random_password():
-        pg = PasswordGenerator()
-        pg.minlen = 8
-        return pg.generate()
+        return generate_pswd()
+
 
     def execute(self):
         self.__chrome.get('https://app.skiff.com/')
@@ -102,4 +101,4 @@ class SignUpForSkiff(SignUpFor):
         print('Email:', self.__email, '\nPassword:', self.__password)
 
 
-SignUpForSkiff().execute()
+# SignUpForSkiff().execute()

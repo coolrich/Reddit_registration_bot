@@ -4,6 +4,8 @@ import jsonlines as jsonl
 from data import Data
 from sign_up_for_reddit import SignUpForReddit
 from password_generator import generate_pswd
+
+
 class RedditAccountsFactory:
     @staticmethod
     def create_accounts(number_of_acc: int = 1, delay_int_minutes: int = 0, use_proxy: bool = False):
@@ -32,4 +34,4 @@ class RedditAccountsFactory:
         SignUpForReddit.wait(60 * minutes)
 
 
-RedditAccountsFactory.create_accounts(2, use_proxy=False)
+RedditAccountsFactory.create_accounts(1, use_proxy=False)

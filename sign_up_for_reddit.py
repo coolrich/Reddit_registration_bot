@@ -12,7 +12,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium_recaptcha_solver import RecaptchaSolver
 from selenium_recaptcha_solver.exceptions import RecaptchaException
-
 from signup_for import SignUpFor
 
 
@@ -249,24 +248,6 @@ class SignUpForReddit(SignUpFor):
         self.imitation_of_human_delay(3, 6)
         self.__quit_browser()
 
-    def execute(self):
-        while self.__is_repeat:
-            try:
-                self.__actions()
-                self.__is_repeat = False
-                self.__decrease_delay()
-            except (RecaptchaException, TimeoutException, ElementClickInterceptedException) as e:
-                self.__exception_handler(delay_in_seconds=self.__delay_after_failed_attempt, exception=e)
-                self.__increase_delay()
-            except SignUpForReddit.SignUpException as sue:
-                self.__exception_handler(sue.delay_in_seconds, exception=sue)
-        return {
-            'username': self.__reg_username,
-            'email': self.__email,
-            'password': self.__password,
-            'API_key': None
-        }
-
     def check_for_proxy(self):
         self.__recreate_chrome()
         self.__chrome.get('http://www.whatismyip.com')
@@ -285,3 +266,21 @@ class SignUpForReddit(SignUpFor):
         self.__delay_after_failed_attempt -= self.delay_step
         if self.__delay_after_failed_attempt <= 0:
             self.__delay_after_failed_attempt = 0
+
+    def execute(self):
+        while self.__is_repeat:
+            try:
+                self.__actions()
+                self.__is_repeat = False
+                self.__decrease_delay()
+            except (RecaptchaException, TimeoutException, ElementClickInterceptedException) as e:
+                self.__exception_handler(delay_in_seconds=self.__delay_after_failed_attempt, exception=e)
+                self.__increase_delay()
+            except SignUpForReddit.SignUpException as sue:
+                self.__exception_handler(sue.delay_in_seconds, exception=sue)
+        return {
+            'username': self.__reg_username,
+            'email': self.__email,
+            'password': self.__password,
+            # 'API_key': None
+        }
